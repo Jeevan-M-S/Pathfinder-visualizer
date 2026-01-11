@@ -1,13 +1,14 @@
 import random
 import arcade
 from arcade.shape_list import ShapeElementList, create_line
+from Algorithms.A_Star import *
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Maze solver"
 
-RowCount = 50
-ColCount = 50
+RowCount = 15
+ColCount = 15
 
 Cell_width = 500 / RowCount
 Cell_height = 500 / ColCount
@@ -18,12 +19,12 @@ y_offset = (SCREEN_HEIGHT - (RowCount-1)*Cell_height) / 2
 Background_Color = arcade.color.BLACK
 Wall_Color = arcade.color.WHITE
 Search_Color = arcade.color.CYAN
-Explored_Color = arcade.color.BLUE
+Explored_Color = arcade.color.GOLD
 Start_Color = arcade.color.GREEN
 End_Color = arcade.color.RED
 
 chance = lambda n: n >= random.randint(1,100)
-Center = lambda x,y: (x+Cell_width/2,y+Cell_height/2)
+Center = lambda point: (point[0]+Cell_width/2,point[1]+Cell_height/2)
 
 class Cell:
     def __init__(self):
@@ -35,11 +36,18 @@ class Maze(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Maze Visualizer")
         arcade.set_background_color(Background_Color)
-        self.running = False
+        self.running = True
         self.grid = [[Cell() for j in range(ColCount)] for i in range(RowCount)]
         self.start = [0,1]
         self.end = [RowCount-2,ColCount-1]
         self.wall_list = None
+        self.generator = None
+        self.reached_from = {}
+        self.path = []
+        self.show_search = True
+        self.path_delay_time = 0
+        self.segment_delay_time = 0
+        self.idx = 1
 
     def on_draw(self):
         self.clear()
@@ -56,9 +64,56 @@ class Maze(arcade.Window):
         y = y_offset + row * Cell_height
         arcade.draw_line(x, y+Cell_height, x+Cell_width, y+Cell_height, End_Color)
 
+        if self.show_search:
+            for child, parent in self.reached_from.items():
+                if parent:
+                    p1 = Center((x_offset + child[1] * Cell_width, y_offset + child[0] * Cell_height))
+                    p2 = Center((x_offset + parent[1] * Cell_width, y_offset + parent[0] * Cell_height))
+                    arcade.draw_line(p1[0], p1[1], p2[0], p2[1], Search_Color)
+
+        if self.path and not self.show_search:
+            points = ([(x_offset+(self.start[1]+0.5)*Cell_width, y_offset+self.start[0]*Cell_height)] +
+                      [Center((x_offset + c * Cell_width, y_offset + r * Cell_height)) for r, c in self.path] +
+                      [(x_offset+(self.end[1]+0.5)*Cell_width, y_offset+(self.end[0]+1)*Cell_height)])
+            for i in range(1, self.idx+1):
+                p1,p2 = points[i], points[i-1]
+                arcade.draw_line(p1[0],p1[1],p2[0],p2[1],Explored_Color,4)
+
+    def reachable(self,x,y,direction):
+        if direction == 'L':
+            return y > 1 and not self.grid[x][y-1].right_wall
+        if direction == 'R':
+            return y < ColCount-1 and not self.grid[x][y].right_wall
+        if direction == 'U':
+            return x < RowCount-2 and not self.grid[x+1][y].bottom_wall
+        if direction == 'D':
+            return x > 0 and not self.grid[x][y].bottom_wall
+        return False
+
     def on_update(self, delta_time):
         if self.running:
-            pass
+            if self.generator is None:
+                self.generator = A_Star(self.grid, self.start, self.end, self.reachable)
+            try:
+                if not isinstance(self.generator, str):
+                    res = next(self.generator)
+                    if res[0] == 'Searching':
+                        _, current, self.reached_from = res
+                    elif res[0] == 'Done':
+                        self.path = res[1]
+                        self.generator = "Done"
+            except StopIteration:
+                pass
+
+            if self.generator == "Done":
+                self.path_delay_time += delta_time
+                if self.path_delay_time > 0.5:
+                    self.show_search = False
+                    self.segment_delay_time += delta_time
+                    if self.segment_delay_time > 0.05:
+                        if self.idx < len(self.path)+1:
+                            self.idx += 1
+                        self.segment_delay_time = 0.0
 
     def on_key_press(self, key: int, modifiers: int):
         if key == arcade.key.SPACE:
