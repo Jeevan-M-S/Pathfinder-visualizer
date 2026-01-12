@@ -44,6 +44,9 @@ def A_Star(grid, start, goal, reachable):
         yield "Searching", top[1], reached_from
 
 
+    if goal not in reached_from:
+        return "No Path Exists"
+
     paths = []
     node = goal
     while node != start:
@@ -51,3 +54,5 @@ def A_Star(grid, start, goal, reachable):
         node = reached_from[node]
     paths.append(start)
     yield "Done", paths[::-1]
+
+    return None
