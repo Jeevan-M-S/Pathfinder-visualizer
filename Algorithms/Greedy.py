@@ -1,14 +1,15 @@
 import heapq
-from math import inf
 
 
-def Dijkstra(self, start, goal, reachable):
+def Greedy(self, start, goal, reachable):
+    def manhattan_distance(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
     grid = self.grid
     rows = range(len(grid)-1)
     cols = range(1,len(grid[0]))
-    distance = {start : 0}
     reached_from = {start:start}
-    nodes = [(0,start)]
+    nodes = [(manhattan_distance(start,goal),start)]
     seen = set()
     while nodes:
         top = heapq.heappop(nodes)
@@ -29,11 +30,9 @@ def Dijkstra(self, start, goal, reachable):
         for v in valid:
             if v in seen:
                 continue
-            if distance.get(v,inf) > distance[top[1]] + 1:
-                distance[v] = distance[top[1]] + 1
-                score = distance[v]
-                reached_from[v] = top[1]
-                heapq.heappush(nodes,(score,v))
+            score = manhattan_distance(v, goal)
+            reached_from[v] = top[1]
+            heapq.heappush(nodes,(score,v))
 
     if goal not in reached_from:
         return "No Solution Path Exists"
