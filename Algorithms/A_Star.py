@@ -2,13 +2,11 @@ import heapq
 from math import inf
 
 
-def A_Star(grid, start, goal, reachable):
+def A_Star(self, start, goal, reachable):
     def manhattan_distance(p1, p2):
         return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
-
-    start = tuple(start)
-    goal = tuple(goal)
+    grid = self.grid
     rows = range(len(grid)-1)
     cols = range(1,len(grid[0]))
     distance = {start : 0}
@@ -17,8 +15,7 @@ def A_Star(grid, start, goal, reachable):
     seen = set()
     while nodes:
         top = heapq.heappop(nodes)
-        while top[1] in seen and nodes:
-            top = heapq.heappop(nodes)
+        yield "Searching", top[1], reached_from
         if top[1] == goal:
             break
         seen.add(top[1])
@@ -41,18 +38,17 @@ def A_Star(grid, start, goal, reachable):
                 reached_from[v] = top[1]
                 heapq.heappush(nodes,(score,v))
 
-        yield "Searching", top[1], reached_from
 
 
     if goal not in reached_from:
-        return "No Path Exists"
+        return "No Solution Path Exists"
 
-    paths = []
+    path = []
     node = goal
     while node != start:
-        paths.append(node)
+        path.append(node)
         node = reached_from[node]
-    paths.append(start)
-    yield "Done", paths[::-1]
+    path.append(start)
+    yield "Done", path[::-1]
 
     return None

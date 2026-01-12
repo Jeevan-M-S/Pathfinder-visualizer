@@ -1,16 +1,17 @@
 import random
-from collections import deque
 from typing import Hashable, Any
 import arcade
 from arcade.shape_list import ShapeElementList, create_line
 from Algorithms.A_Star import *
+from Algorithms.BFS import *
+from Algorithms.DFS import DFS
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Maze Visualizer"
 
-RowCount = 25
-ColCount = 25
+RowCount = 35
+ColCount = 35
 
 Cell_width = 500 / RowCount
 Cell_height = 500 / ColCount
@@ -105,6 +106,8 @@ class Maze(arcade.Window):
         self.reached_from = {}
         self.path = []
         self.show_search = True
+        self.search_list = ShapeElementList()
+        self.speed = 1
         self.path_delay_time = 0
         self.segment_delay_time = 0
         self.idx = 1
@@ -125,11 +128,7 @@ class Maze(arcade.Window):
         arcade.draw_line(x, y+Cell_height, x+Cell_width, y+Cell_height, End_Color)
 
         if self.show_search:
-            for child, parent in self.reached_from.items():
-                if parent:
-                    p1 = Center((x_offset + child[1] * Cell_width, y_offset + child[0] * Cell_height))
-                    p2 = Center((x_offset + parent[1] * Cell_width, y_offset + parent[0] * Cell_height))
-                    arcade.draw_line(p1[0], p1[1], p2[0], p2[1], Search_Color)
+            self.search_list.draw()
 
         if self.path and not self.show_search:
             points = ([(x_offset+(self.start[1]+0.5)*Cell_width, y_offset+self.start[0]*Cell_height)] +
@@ -153,17 +152,23 @@ class Maze(arcade.Window):
     def on_update(self, delta_time):
         if self.running:
             if self.generator is None:
-                self.generator = A_Star(self.grid, self.start, self.end, self.reachable)
-            try:
-                if not isinstance(self.generator, str):
-                    res = next(self.generator)
-                    if res[0] == 'Searching':
-                        _, current, self.reached_from = res
-                    elif res[0] == 'Done':
-                        self.path = res[1]
-                        self.generator = "Done"
-            except StopIteration:
-                pass
+                self.generator = A_Star(self, self.start, self.end, self.reachable)
+            for _ in range(self.speed):
+                try:
+                    if not isinstance(self.generator, str):
+                        res = next(self.generator)
+                        if res[0] == 'Searching':
+                            state, child, self.reached_from = res
+                            parent = self.reached_from[child]
+                            if parent:
+                                p1 = Center((x_offset + child[1] * Cell_width, y_offset + child[0] * Cell_height))
+                                p2 = Center((x_offset + parent[1] * Cell_width, y_offset + parent[0] * Cell_height))
+                                self.search_list.append(create_line(p1[0], p1[1], p2[0], p2[1], Search_Color))
+                        elif res[0] == 'Done':
+                            self.path = res[1]
+                            self.generator = "Done"
+                except StopIteration:
+                    pass
 
             if self.generator == "Done":
                 self.path_delay_time += delta_time
@@ -171,9 +176,10 @@ class Maze(arcade.Window):
                     self.show_search = False
                     self.segment_delay_time += delta_time
                     if self.segment_delay_time > 0.05:
-                        if self.idx < len(self.path)+1:
-                            self.idx += 1
-                        self.segment_delay_time = 0.0
+                        for _ in range(self.speed):
+                            if self.idx < len(self.path)+1:
+                                self.idx += 1
+                            self.segment_delay_time = 0.0
 
     def on_key_press(self, key: int, modifiers: int):
         if key == arcade.key.SPACE:
@@ -222,9 +228,9 @@ class Maze(arcade.Window):
                     self.remove_wall(i,j,1) if i > 0 else self.remove_wall(i,j,2)
                 else:
                     self.remove_wall(i,j,2) if j < ColCount-1 else self.remove_wall(i,j,1)
-                if i == 0 and chance(35):
+                if i == 0 and chance(50):
                     self.add_wall(i,j,2)
-                elif j == ColCount-1 and chance(35):
+                elif j == ColCount-1 and chance(50):
                     self.add_wall(i,j,1)
 
         #Guarantee a soln path exists
