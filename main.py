@@ -2,7 +2,7 @@ import random
 from typing import Hashable, Any
 import arcade
 import arcade.gui
-from arcade.gui import UIFlatButton
+from arcade.gui import UIFlatButton, UIOnClickEvent, UIMousePressEvent
 from arcade.gui.widgets.buttons import UIFlatButtonStyle
 from arcade.shape_list import ShapeElementList, create_line
 from pyglet.event import EVENT_HANDLE_STATE
@@ -116,6 +116,7 @@ class Maze(arcade.Window):
         self.manager = arcade.gui.UIManager()
         self.sidebar = None
         self.show_sidebar = False
+        self.menu_button = UIFlatButton()
         self.setup_ui()
         self.on_show_view()
 
@@ -146,7 +147,7 @@ class Maze(arcade.Window):
                                         color=Wall_Color,anchor_x="center")
 
     def setup_ui(self):
-        menu_button = arcade.gui.UIFlatButton(text="\u2261", x=0, y=SCREEN_HEIGHT - 50, width=50, height=menu_button_height,
+        self.menu_button = arcade.gui.UIFlatButton(text="\u2261", x=0, y=SCREEN_HEIGHT - 50, width=50, height=menu_button_height,
                                               style={
                                                   "disabled" : UIFlatButtonStyle(),
                                                   "normal" : UIFlatButtonStyle(bg=(Background_Color if not self.show_sidebar else arcade.color.GRAY),font_size=25),
@@ -154,10 +155,10 @@ class Maze(arcade.Window):
                                                   "press" : UIFlatButtonStyle(bg=arcade.color.WHITE,font_size=25)
                                               })
 
-        @menu_button.event("on_click")
+        @self.menu_button.event("on_click")
         def on_menu_button_click(event):
             self.show_sidebar = not self.show_sidebar
-            menu_button.style = {
+            self.menu_button.style = {
                                   "disabled" : UIFlatButtonStyle(),
                                   "normal" : UIFlatButtonStyle(bg=(Background_Color if not self.show_sidebar else arcade.color.GRAY),font_size=25),
                                   "hover" : UIFlatButtonStyle(bg=(arcade.color.GRAY if not self.show_sidebar else arcade.color.LIGHT_GRAY),font_size=25),
@@ -168,7 +169,7 @@ class Maze(arcade.Window):
             else:
                 self.manager.remove(self.sidebar)
 
-        self.manager.add(menu_button)
+        self.manager.add(self.menu_button)
 
         buttons = []
         style = {
@@ -186,6 +187,7 @@ class Maze(arcade.Window):
             self.generator = Dijkstra(self,self.start,self.end,self.reachable)
             self.Algorithm.text = "Dijkstra's Algorithm"
             self.reset_search()
+            self.menu_button.dispatch_event("on_click", None)
 
 
         bfs_button = UIFlatButton(text="BFS Algorithm", width=SideBarWidth, style=style)
@@ -196,6 +198,7 @@ class Maze(arcade.Window):
             self.generator = BFS(self, self.start, self.end, self.reachable)
             self.Algorithm.text = "BFS Algorithm"
             self.reset_search()
+            self.menu_button.dispatch_event("on_click", None)
 
 
         a_star_button = UIFlatButton(text="A* Algorithm", width=SideBarWidth, style=style)
@@ -206,6 +209,7 @@ class Maze(arcade.Window):
             self.generator = A_Star(self, self.start, self.end, self.reachable)
             self.Algorithm.text = "A* Algorithm"
             self.reset_search()
+            self.menu_button.dispatch_event("on_click", None)
 
 
         dfs_button = UIFlatButton(text="DFS Algorithm", width=SideBarWidth, style=style)
@@ -216,6 +220,7 @@ class Maze(arcade.Window):
             self.generator = DFS(self, self.start, self.end, self.reachable)
             self.Algorithm.text = "DFS Algorithm"
             self.reset_search()
+            self.menu_button.dispatch_event("on_click", None)
 
 
         greedy_button = UIFlatButton(text="Greedy Algorithm", width=SideBarWidth, style=style)
@@ -226,6 +231,7 @@ class Maze(arcade.Window):
             self.generator = Greedy(self, self.start, self.end, self.reachable)
             self.Algorithm.text = "Greedy Algorithm"
             self.reset_search()
+            self.menu_button.dispatch_event("on_click", None)
 
 
         generate_new_grid_button = UIFlatButton(text="Generate New Grid", width=SideBarWidth, style=style)
@@ -316,6 +322,10 @@ class Maze(arcade.Window):
     def on_key_press(self, key: int, modifiers: int):
         if key == arcade.key.SPACE and not self.show_sidebar:
             self.running = not self.running
+
+    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> EVENT_HANDLE_STATE:
+        if x > SideBarWidth and self.show_sidebar:
+            self.menu_button.dispatch_event("on_click",None)
 
     def draw_maze(self):
         self.wall_list = ShapeElementList()
