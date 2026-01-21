@@ -18,7 +18,7 @@ SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Maze Visualizer"
 
 RowCount = 35
-ColCount = 45
+ColCount = 35
 
 Cell_width = 500 / RowCount
 Cell_height = 500 / ColCount
