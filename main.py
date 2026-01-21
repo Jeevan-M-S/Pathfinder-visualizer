@@ -13,21 +13,19 @@ from Algorithms.BFS import *
 from Algorithms.DFS import *
 from Algorithms.Greedy import *
 
-
-
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Maze Visualizer"
 
 RowCount = 35
-ColCount = 35
+ColCount = 45
 
 Cell_width = 500 / RowCount
 Cell_height = 500 / ColCount
 
 menu_button_height = 50
 SideBarWidth = 200
-SideBarHeight = SCREEN_HEIGHT-menu_button_height
+SideBarHeight = SCREEN_HEIGHT - menu_button_height
 
 x_offset = (SCREEN_WIDTH - (ColCount + 1) * Cell_width) / 2
 y_offset = (SCREEN_HEIGHT - (RowCount - 1) * Cell_height) / 2
@@ -43,7 +41,7 @@ chance = lambda n: n >= random.randint(1, 100)
 Center = lambda point: (point[0] + Cell_width / 2, point[1] + Cell_height / 2)
 
 
-#Classic Disjoint Set Union (DSU) Implementation
+# Classic Disjoint Set Union (DSU) Implementation
 class UnionFind:
     def __init__(self, adj: dict[Hashable, list[tuple[Hashable, Any]]]):
         self.parent: dict[Hashable, Hashable] = {}
@@ -100,14 +98,14 @@ class UnionFind:
         return True
 
 
-#Definition of a Cell of the maze
+# Definition of a Cell of the maze
 class Cell:
     def __init__(self):
         self.bottom_wall = True
         self.right_wall = True
 
 
-#Maze generator and solver
+# Maze generator and solver
 class Maze(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
@@ -141,29 +139,38 @@ class Maze(arcade.Window):
         self.path_delay_time = 0
         self.segment_delay_time = 0
 
-        self.default_text = arcade.text.Text("Press SPACE to toggle the search process", x=SCREEN_WIDTH // 2, y=y_offset // 2,
-                                        color=Wall_Color,anchor_x="center")
-        self.Algorithm = arcade.text.Text("Dijkstra's Algorithm", x=SCREEN_WIDTH // 2, y=SCREEN_HEIGHT - (y_offset // 2),
-                                        color=Wall_Color,anchor_x="center")
+        self.default_text = arcade.text.Text("Press SPACE to toggle the search process", x=SCREEN_WIDTH // 2,
+                                             y=y_offset // 2,
+                                             color=Wall_Color, anchor_x="center")
+        self.Algorithm = arcade.text.Text("Dijkstra's Algorithm", x=SCREEN_WIDTH // 2,
+                                          y=SCREEN_HEIGHT - (y_offset // 2),
+                                          color=Wall_Color, anchor_x="center")
 
     def setup_ui(self):
-        self.menu_button = arcade.gui.UIFlatButton(text="\u2261", x=0, y=SCREEN_HEIGHT - 50, width=50, height=menu_button_height,
-                                              style={
-                                                  "disabled" : UIFlatButtonStyle(),
-                                                  "normal" : UIFlatButtonStyle(bg=(Background_Color if not self.show_sidebar else arcade.color.GRAY),font_size=25),
-                                                  "hover" : UIFlatButtonStyle(bg=(arcade.color.GRAY if not self.show_sidebar else arcade.color.LIGHT_GRAY),font_size=25),
-                                                  "press" : UIFlatButtonStyle(bg=arcade.color.WHITE,font_size=25)
-                                              })
+        self.menu_button = arcade.gui.UIFlatButton(text="\u2261", x=0, y=SCREEN_HEIGHT - 50, width=50,
+                                                   height=menu_button_height,
+                                                   style={
+                                                       "disabled": UIFlatButtonStyle(),
+                                                       "normal": UIFlatButtonStyle(bg=(
+                                                           Background_Color if not self.show_sidebar else arcade.color.GRAY),
+                                                                                   font_size=25),
+                                                       "hover": UIFlatButtonStyle(bg=(
+                                                           arcade.color.GRAY if not self.show_sidebar else arcade.color.LIGHT_GRAY),
+                                                                                  font_size=25),
+                                                       "press": UIFlatButtonStyle(bg=arcade.color.WHITE, font_size=25)
+                                                   })
 
         @self.menu_button.event("on_click")
         def on_menu_button_click(event):
             self.show_sidebar = not self.show_sidebar
             self.menu_button.style = {
-                                  "disabled" : UIFlatButtonStyle(),
-                                  "normal" : UIFlatButtonStyle(bg=(Background_Color if not self.show_sidebar else arcade.color.GRAY),font_size=25),
-                                  "hover" : UIFlatButtonStyle(bg=(arcade.color.GRAY if not self.show_sidebar else arcade.color.LIGHT_GRAY),font_size=25),
-                                  "press" : UIFlatButtonStyle(bg=arcade.color.WHITE,font_size=25)
-                                }
+                "disabled": UIFlatButtonStyle(),
+                "normal": UIFlatButtonStyle(bg=(Background_Color if not self.show_sidebar else arcade.color.GRAY),
+                                            font_size=25),
+                "hover": UIFlatButtonStyle(bg=(arcade.color.GRAY if not self.show_sidebar else arcade.color.LIGHT_GRAY),
+                                           font_size=25),
+                "press": UIFlatButtonStyle(bg=arcade.color.WHITE, font_size=25)
+            }
             if self.show_sidebar:
                 self.manager.add(self.sidebar)
             else:
@@ -184,11 +191,10 @@ class Maze(arcade.Window):
 
         @dijkstra_button.event("on_click")
         def dijkstra_button_click(event):
-            self.generator = Dijkstra(self,self.start,self.end,self.reachable)
+            self.generator = Dijkstra(self, self.start, self.end, self.reachable)
             self.Algorithm.text = "Dijkstra's Algorithm"
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
-
 
         bfs_button = UIFlatButton(text="BFS Algorithm", width=SideBarWidth, style=style)
         buttons.append(bfs_button)
@@ -200,7 +206,6 @@ class Maze(arcade.Window):
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
 
-
         a_star_button = UIFlatButton(text="A* Algorithm", width=SideBarWidth, style=style)
         buttons.append(a_star_button)
 
@@ -210,7 +215,6 @@ class Maze(arcade.Window):
             self.Algorithm.text = "A* Algorithm"
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
-
 
         dfs_button = UIFlatButton(text="DFS Algorithm", width=SideBarWidth, style=style)
         buttons.append(dfs_button)
@@ -222,7 +226,6 @@ class Maze(arcade.Window):
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
 
-
         greedy_button = UIFlatButton(text="Greedy Algorithm", width=SideBarWidth, style=style)
         buttons.append(greedy_button)
 
@@ -232,7 +235,6 @@ class Maze(arcade.Window):
             self.Algorithm.text = "Greedy Algorithm"
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
-
 
         generate_new_grid_button = UIFlatButton(text="Generate New Grid", width=SideBarWidth, style=style)
         buttons.append(generate_new_grid_button)
@@ -245,11 +247,11 @@ class Maze(arcade.Window):
             self.reset_search()
             self.draw_maze()
 
+        self.sidebar = arcade.gui.UIGridLayout(x=0, y=0, width=SideBarWidth, height=SideBarHeight,
+                                               row_count=len(buttons))
 
-        self.sidebar = arcade.gui.UIGridLayout(x=0, y=0, width=SideBarWidth, height=SideBarHeight, row_count=len(buttons))
-
-        for i,button in enumerate(buttons):
-            self.sidebar.add(button,row=i)
+        for i, button in enumerate(buttons):
+            self.sidebar.add(button, row=i)
 
     def on_draw(self):
         self.clear()
@@ -278,7 +280,7 @@ class Maze(arcade.Window):
                 arcade.draw_line(p1[0], p1[1], p2[0], p2[1], Explored_Color, 4)
 
         if self.show_sidebar:
-            arcade.draw_lrbt_rectangle_filled(0,200,0,SCREEN_HEIGHT,arcade.color.GRAY)
+            arcade.draw_lrbt_rectangle_filled(0, 200, 0, SCREEN_HEIGHT, arcade.color.GRAY)
         else:
             self.default_text.draw()
 
@@ -325,7 +327,7 @@ class Maze(arcade.Window):
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> EVENT_HANDLE_STATE:
         if x > SideBarWidth and self.show_sidebar:
-            self.menu_button.dispatch_event("on_click",None)
+            self.menu_button.dispatch_event("on_click", None)
 
     def draw_maze(self):
         self.wall_list = ShapeElementList()
@@ -343,14 +345,13 @@ class Maze(arcade.Window):
                     self.wall_list.append(line)
 
     def reset_search(self):
-        if self.generator == "Done":
-            self.generator = {
-                "Dijkstra's Algorithm": Dijkstra(self,self.start, self.end, self.reachable),
-                "BFS Algorithm": BFS(self,self.start, self.end, self.reachable),
-                "A* Algorithm" : A_Star(self,self.start, self.end, self.reachable),
-                "DFS Algorithm": DFS(self,self.start, self.end, self.reachable),
-                "Greedy Algorithm": Greedy(self,self.start, self.end, self.reachable)
-            }[self.Algorithm.text]
+        self.generator = {
+            "Dijkstra's Algorithm": Dijkstra(self, self.start, self.end, self.reachable),
+            "BFS Algorithm": BFS(self, self.start, self.end, self.reachable),
+            "A* Algorithm": A_Star(self, self.start, self.end, self.reachable),
+            "DFS Algorithm": DFS(self, self.start, self.end, self.reachable),
+            "Greedy Algorithm": Greedy(self, self.start, self.end, self.reachable)
+        }[self.Algorithm.text]
         self.running = False
         self.search_list = ShapeElementList()
         self.reached_from = {}
@@ -390,7 +391,7 @@ class Maze(arcade.Window):
         self.start = (0, random.randint(1, ColCount - 1))
         self.end = (RowCount - 2, random.randint(1, ColCount - 1))
 
-        #Boundary
+        # Boundary
         for i in range(RowCount):
             self.remove_wall(i, 0, 1)
         for j in range(ColCount):
@@ -400,7 +401,7 @@ class Maze(arcade.Window):
                 self.remove_wall(RowCount - 1, j, 1)
             self.remove_wall(RowCount - 1, j, 2)
 
-        #Generate Maze
+        # Generate Maze
         for i in range(RowCount - 1):
             for j in range(1, ColCount):
                 if (i, j) == (0, ColCount - 1):
@@ -417,7 +418,7 @@ class Maze(arcade.Window):
                 elif j == ColCount - 1 and chance(50):
                     self.add_wall(i, j, 1)
 
-    #Guarantee a soln path exists
+    # Guarantee a soln path exists
     def make_solvable(self):
         adj = {}
         walls = []
@@ -446,6 +447,7 @@ class Maze(arcade.Window):
                 self.remove_wall(*wall[0])
             elif wall[0][2] == 2 and self.maze.unite((wall[0][0], wall[0][1]), (wall[0][0], wall[0][1] + 1)):
                 self.remove_wall(*wall[0])
+
 
 if __name__ == "__main__":
     maze = Maze()
