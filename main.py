@@ -236,10 +236,10 @@ class Maze(arcade.Window):
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
 
-        generate_new_grid_button = UIFlatButton(text="Generate New Grid", width=SideBarWidth, style=style)
-        buttons.append(generate_new_grid_button)
+        generate_new_maze_button = UIFlatButton(text="Generate New Maze", width=SideBarWidth, style=style)
+        buttons.append(generate_new_maze_button)
 
-        @generate_new_grid_button.event("on_click")
+        @generate_new_maze_button.event("on_click")
         def generate_new_grid_button_click(event):
             self.reset_grid()
             self.generate_grid()
