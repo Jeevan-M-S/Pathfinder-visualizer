@@ -20,6 +20,13 @@ SCREEN_TITLE = "Maze Visualizer"
 RowCount = 35
 ColCount = 35
 
+def update_cell_dimensions():
+    global Cell_width, Cell_height, x_offset, y_offset
+    Cell_width = 500 / RowCount
+    Cell_height = 500 / ColCount
+    x_offset = (SCREEN_WIDTH - (ColCount + 1) * Cell_width) / 2
+    y_offset = (SCREEN_HEIGHT - (RowCount - 1) * Cell_height) / 2
+
 Cell_width = 500 / RowCount
 Cell_height = 500 / ColCount
 
@@ -236,6 +243,28 @@ class Maze(arcade.Window):
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
 
+        # Grid size buttons
+        small_grid_button = UIFlatButton(text="Small Grid (20x20)", width=SideBarWidth, style=style)
+        buttons.append(small_grid_button)
+
+        @small_grid_button.event("on_click")
+        def small_grid_button_click(event):
+            self.change_grid_size(21, 21)
+
+        medium_grid_button = UIFlatButton(text="Medium Grid (35x35)", width=SideBarWidth, style=style)
+        buttons.append(medium_grid_button)
+
+        @medium_grid_button.event("on_click")
+        def medium_grid_button_click(event):
+            self.change_grid_size(36, 36)
+
+        large_grid_button = UIFlatButton(text="Large Grid (50x50)", width=SideBarWidth, style=style)
+        buttons.append(large_grid_button)
+
+        @large_grid_button.event("on_click")
+        def large_grid_button_click(event):
+            self.change_grid_size(51, 51)
+
         generate_new_maze_button = UIFlatButton(text="Generate New Maze", width=SideBarWidth, style=style)
         buttons.append(generate_new_maze_button)
 
@@ -363,6 +392,18 @@ class Maze(arcade.Window):
         self.grid = [[Cell() for j in range(ColCount)] for i in range(RowCount)]
         self.start = [0, 1]
         self.end = [RowCount - 2, ColCount - 1]
+
+    def change_grid_size(self, rows, cols):
+        global RowCount, ColCount
+        RowCount = rows
+        ColCount = cols
+        update_cell_dimensions()
+        self.reset_grid()
+        self.generate_grid()
+        self.make_solvable()
+        self.reset_search()
+        self.draw_maze()
+        self.menu_button.dispatch_event("on_click", None)
 
     def reachable(self, x, y, direction):
         if direction == 'L':
