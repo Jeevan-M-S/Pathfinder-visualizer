@@ -1,6 +1,6 @@
 # Maze Pathfinder Visualizer
 
-Visualize how different pathfinding algorithms efficiently navigate and solve a maze. This interactive tool allows you to observe algorithms like Dijkstra's, A*, BFS, DFS, and Greedy Search in action.
+Visualize how different pathfinding algorithms efficiently navigate and solve a maze. This interactive tool allows you to observe algorithms like Dijkstra's, BFS, A*, DFS, and Greedy Search in action.
 
 ![img.png](imgs/img.png)
 
