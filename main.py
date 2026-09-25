@@ -1,5 +1,7 @@
 import random
 from typing import Hashable, Any
+
+# Arcade engine and GUI libraries used for the visualization window and widgets.
 import arcade
 import arcade.gui
 from arcade.gui import UIFlatButton, UIOnClickEvent, UIMousePressEvent
@@ -7,19 +9,26 @@ from arcade.gui.widgets.buttons import UIFlatButtonStyle
 from arcade.shape_list import ShapeElementList, create_line
 from pyglet.event import EVENT_HANDLE_STATE
 
+# Maze-search algorithm implementations.
 from Algorithms.Dijkstra import *
 from Algorithms.A_Star import *
 from Algorithms.BFS import *
 from Algorithms.DFS import *
 from Algorithms.Greedy import *
 
+# Core window and maze dimensions used throughout the project.
+# These values determine the visible game area and the maze layout grid.
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Maze Visualizer"
 
+# The maze is rendered with a rectangular grid. These dimensions are updated
+# whenever the user changes the size preset from the sidebar menu.
 RowCount = 35
 ColCount = 35
 
+# Recalculate the size of each cell and the offsets used to center the maze
+# inside the window. This keeps the maze visually balanced for all grid sizes.
 def update_cell_dimensions():
     global Cell_width, Cell_height, x_offset, y_offset
     Cell_width = 500 / RowCount
@@ -30,6 +39,7 @@ def update_cell_dimensions():
 Cell_width = 500 / RowCount
 Cell_height = 500 / ColCount
 
+# Sidebar styling and layout values.
 menu_button_height = 50
 SideBarWidth = 200
 SideBarHeight = SCREEN_HEIGHT - menu_button_height
@@ -37,6 +47,7 @@ SideBarHeight = SCREEN_HEIGHT - menu_button_height
 x_offset = (SCREEN_WIDTH - (ColCount + 1) * Cell_width) / 2
 y_offset = (SCREEN_HEIGHT - (RowCount - 1) * Cell_height) / 2
 
+# Colors used to draw the maze, search traces, and endpoint markers.
 Background_Color = arcade.color.BLACK
 Wall_Color = arcade.color.WHITE
 Search_Color = arcade.color.CYAN
@@ -44,18 +55,22 @@ Explored_Color = arcade.color.GOLD
 Start_Color = arcade.color.GREEN
 End_Color = arcade.color.RED
 
+# Helper functions used during maze generation and path rendering.
 chance = lambda n: n >= random.randint(1, 100)
 Center = lambda point: (point[0] + Cell_width / 2, point[1] + Cell_height / 2)
 
 
-# Classic Disjoint Set Union (DSU) Implementation
+# Classic Disjoint Set Union (DSU) implementation.
+# It groups maze cells into connected components so the generator can remove
+# walls without leaving the maze disconnected or unsolvable.
 class UnionFind:
     def __init__(self, adj: dict[Hashable, list[tuple[Hashable, Any]]]):
         self.parent: dict[Hashable, Hashable] = {}
         self.size: dict[Hashable, int] = {}
         self.components: list[set[Hashable]] = self.partition(adj)
 
-    # Attempts to partition the graph into disjoint sub-graphs in O(V+E)
+    # Partition the graph into connected components using BFS/queue traversal.
+    # This is effectively a linear-time graph traversal across all vertices.
     def partition(self, adj: dict[Hashable, list[tuple[Hashable, Any]]]) -> list[set[Hashable]]:
         if not adj:
             return []
@@ -80,7 +95,8 @@ class UnionFind:
             res.append(comp)
         return res
 
-    # Finds representative of sub-graph in which node is present in O(log(V))
+    # Find the representative of the set containing the given node.
+    # Path compression keeps this operation efficient in practice.
     def find(self, node: Hashable) -> Hashable:
         if node not in self.parent:
             raise KeyError(f"Node {node} is not present in the union")
@@ -88,7 +104,8 @@ class UnionFind:
             self.parent[node] = self.find(self.parent[node])
         return self.parent[node]
 
-    # Joins the sub-graphs containing node1 and node2 in O(log(V))
+    # Merge two connected components if they are currently separate.
+    # The larger component is kept as the root to keep the tree shallow.
     def unite(self, node1: Hashable, node2: Hashable) -> bool:
         if node1 not in self.parent or node2 not in self.parent:
             node = node1 if node1 not in self.parent else node2
@@ -105,19 +122,22 @@ class UnionFind:
         return True
 
 
-# Definition of a Cell of the maze
+# A single maze cell stores the walls that block movement between itself
+# and its neighboring cells.
 class Cell:
     def __init__(self):
         self.bottom_wall = True
         self.right_wall = True
 
 
-# Maze generator and solver
+# Main application window that manages the UI, maze generation,
+# animation, and pathfinding behavior.
 class Maze(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         arcade.set_background_color(Background_Color)
 
+        # The UI manager is responsible for all overlay buttons and sidebar widgets.
         self.manager = arcade.gui.UIManager()
         self.sidebar = None
         self.show_sidebar = False
@@ -125,6 +145,7 @@ class Maze(arcade.Window):
         self.setup_ui()
         self.on_show_view()
 
+        # The core maze structure is stored as a 2D grid of Cell objects.
         self.grid = [[Cell() for j in range(ColCount)] for i in range(RowCount)]
         self.maze = None
         self.start = (0, 1)
@@ -134,6 +155,7 @@ class Maze(arcade.Window):
         self.make_solvable()
         self.draw_maze()
 
+        # Pathfinding animation state.
         self.running = False
         self.generator = None
         self.reached_from = {}
@@ -146,6 +168,7 @@ class Maze(arcade.Window):
         self.path_delay_time = 0
         self.segment_delay_time = 0
 
+        # On-screen instructions and the algorithm title shown above the maze.
         self.default_text = arcade.text.Text("Press SPACE to toggle the search process", x=SCREEN_WIDTH // 2,
                                              y=y_offset // 2,
                                              color=Wall_Color, anchor_x="center")
@@ -154,6 +177,7 @@ class Maze(arcade.Window):
                                           color=Wall_Color, anchor_x="center")
 
     def setup_ui(self):
+        # The top-left menu button toggles the side panel containing the maze tools.
         self.menu_button = arcade.gui.UIFlatButton(text="\u2261", x=0, y=SCREEN_HEIGHT - 50, width=50,
                                                    height=menu_button_height,
                                                    style={
@@ -185,6 +209,8 @@ class Maze(arcade.Window):
 
         self.manager.add(self.menu_button)
 
+        # Each sidebar button configures a different behavior: select algorithm,
+        # resize the grid, or regenerate the maze.
         buttons = []
         style = {
             "disabled": UIFlatButtonStyle(),
@@ -243,7 +269,7 @@ class Maze(arcade.Window):
             self.reset_search()
             self.menu_button.dispatch_event("on_click", None)
 
-        # Grid size buttons
+        # Grid-size controls let the user switch between preset maze dimensions.
         small_grid_button = UIFlatButton(text="Small Grid (20x20)", width=SideBarWidth, style=style)
         buttons.append(small_grid_button)
 
@@ -282,24 +308,29 @@ class Maze(arcade.Window):
         for i, button in enumerate(buttons):
             self.sidebar.add(button, row=i)
 
+    # Draw the full scene: maze walls, search paths, endpoints, and UI overlays.
     def on_draw(self):
         self.clear()
         if self.wall_list:
             self.wall_list.draw()
 
+        # Draw the start marker along the top edge of its cell.
         row, col = self.start
         x = x_offset + col * Cell_width
         y = y_offset + row * Cell_height
         arcade.draw_line(x, y, x + Cell_width, y, Start_Color)
 
+        # Draw the end marker along the bottom edge of its cell.
         row, col = self.end
         x = x_offset + col * Cell_width
         y = y_offset + row * Cell_height
         arcade.draw_line(x, y + Cell_height, x + Cell_width, y + Cell_height, End_Color)
 
+        # While the search is active, trace the visited nodes as lines.
         if self.show_search:
             self.search_list.draw()
 
+        # Once the algorithm finishes, draw the final path gradually.
         if self.path and not self.show_search:
             points = ([(x_offset + (self.start[1] + 0.5) * Cell_width, y_offset + self.start[0] * Cell_height)] +
                       [Center((x_offset + c * Cell_width, y_offset + r * Cell_height)) for r, c in self.path] +
@@ -308,6 +339,7 @@ class Maze(arcade.Window):
                 p1, p2 = points[i], points[i - 1]
                 arcade.draw_line(p1[0], p1[1], p2[0], p2[1], Explored_Color, 4)
 
+        # Sidebar overlay and help text.
         if self.show_sidebar:
             arcade.draw_lrbt_rectangle_filled(0, 200, 0, SCREEN_HEIGHT, arcade.color.GRAY)
         else:
@@ -316,6 +348,7 @@ class Maze(arcade.Window):
         self.manager.draw()
         self.Algorithm.draw()
 
+    # Advance the active search algorithm frame by frame until it completes.
     def on_update(self, delta_time):
         if self.running:
             if self.generator is None:
@@ -347,17 +380,21 @@ class Maze(arcade.Window):
                                 self.idx += 1
                             self.segment_delay_time = 0.0
 
+    # Enable the UI manager after the window is displayed.
     def on_show_view(self):
         self.manager.enable()
 
+    # Toggle the active search animation when the user presses the space bar.
     def on_key_press(self, key: int, modifiers: int):
         if key == arcade.key.SPACE and not self.show_sidebar:
             self.running = not self.running
 
+    # Clicking outside the sidebar closes it.
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> EVENT_HANDLE_STATE:
         if x > SideBarWidth and self.show_sidebar:
             self.menu_button.dispatch_event("on_click", None)
 
+    # Rebuild the visible wall list for the current maze layout.
     def draw_maze(self):
         self.wall_list = ShapeElementList()
         for row in range(RowCount):
@@ -373,6 +410,7 @@ class Maze(arcade.Window):
                     line = create_line(x, y, x + Cell_width, y, Wall_Color)
                     self.wall_list.append(line)
 
+    # Reset the search state so the selected algorithm starts fresh.
     def reset_search(self):
         self.generator = {
             "Dijkstra's Algorithm": Dijkstra(self, self.start, self.end, self.reachable),
@@ -388,11 +426,13 @@ class Maze(arcade.Window):
         self.path = []
         self.idx = 1
 
+    # Recreate the grid with empty walls so a new maze can be generated.
     def reset_grid(self):
         self.grid = [[Cell() for j in range(ColCount)] for i in range(RowCount)]
         self.start = [0, 1]
         self.end = [RowCount - 2, ColCount - 1]
 
+    # Resize the maze and immediately regenerate it with the correct layout.
     def change_grid_size(self, rows, cols):
         global RowCount, ColCount
         RowCount = rows
@@ -405,6 +445,7 @@ class Maze(arcade.Window):
         self.draw_maze()
         self.menu_button.dispatch_event("on_click", None)
 
+    # Check whether movement in a direction is currently possible from a tile.
     def reachable(self, x, y, direction):
         if direction == 'L':
             return y > 1 and not self.grid[x][y - 1].right_wall
@@ -416,6 +457,7 @@ class Maze(arcade.Window):
             return x > 0 and not self.grid[x][y].bottom_wall
         return False
 
+    # Mutators for wall states. These update the structural layout of the maze.
     def add_wall(self, row, col, wall_type):
         if wall_type == 1:
             self.grid[row][col].bottom_wall = True
@@ -428,6 +470,7 @@ class Maze(arcade.Window):
         elif wall_type == 2:
             self.grid[row][col].right_wall = False
 
+    # Generate a randomized maze and place the start and end positions.
     def generate_grid(self):
         self.start = (0, random.randint(1, ColCount - 1))
         self.end = (RowCount - 2, random.randint(1, ColCount - 1))
@@ -459,7 +502,7 @@ class Maze(arcade.Window):
                 elif j == ColCount - 1 and chance(50):
                     self.add_wall(i, j, 1)
 
-    # Guarantee a soln path exists
+    # Guarantee that the generated maze still contains at least one valid route from the start to the end position.
     def make_solvable(self):
         adj = {}
         walls = []
@@ -490,6 +533,7 @@ class Maze(arcade.Window):
                 self.remove_wall(*wall[0])
 
 
+# Run the application entry point when the script is executed directly.
 if __name__ == "__main__":
     maze = Maze()
     arcade.run()
